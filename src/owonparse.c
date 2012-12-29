@@ -24,6 +24,8 @@
 #include <limits.h>
 #include "owon.h"
 #include "parse.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define __(x) #x
 #define PROGRAM __(owonparse)
@@ -186,6 +188,7 @@ int main(int argc, char **argv) {
         fileout = argv[optind + 1];
     }
 
+	long filesize=0;	// Xsider, for Dataformats with no length field in header
     FILE *finp;
     if (NULL == filein) {
         finp = stdin;
@@ -195,10 +198,14 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Unable to open %s\n", filein);
             exit(EXIT_FAILURE);
         }
+		// Xsider, get filesize for SPCX01-Oscilloscopes
+		struct stat buf;
+		stat(filein,&buf);
+		filesize = buf.st_size;
     }
     
     struct owon_capture capture;
-    int ret = owon_parse(&capture, finp);
+    int ret = owon_parse(&capture, finp,filesize); // Xsider, filesize argument added
     if (ret != OWON_SUCCESS) {
         switch (ret) {
             case OWON_ERROR_UNSUPPORTED:

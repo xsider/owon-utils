@@ -103,14 +103,14 @@ float *get_time_table(const char c) {
         case 'U': return _time_table_10_20_50__5;
         case 'V': return _time_table_10_25_50__5;
         case 'W': return _time_table_10_20_50__5;
-        case 'X': return _time_table_10_20_50__5;
+        case 'X': return _time_table_10_20_50__2; // Xsider for new oszi
         default: return NULL;
     }
 };
 
 //TODO: read Wave and FFT channels
 //TODO: more helpful error handling
-int owon_parse(struct owon_capture *capture, FILE *fp) {
+int owon_parse(struct owon_capture *capture, FILE *fp, long filesize) {
     memset(capture, 0, sizeof(*capture));
 
     struct owon_header file_header;
@@ -121,7 +121,8 @@ int owon_parse(struct owon_capture *capture, FILE *fp) {
 
     // TODO: not all models start with `SPB`!
     // Ensure file is the right format.
-    if (0 != strncmp("SPB", (const char *)&file_header.header, 3)) {
+    if (0 != strncmp("SPB", (const char *)&file_header.header, 3) &&
+		0 != strncmp("SPC", (const char *)&file_header.header, 3) ) { //
         return OWON_ERROR_HEADER;
     }
    
@@ -137,6 +138,10 @@ int owon_parse(struct owon_capture *capture, FILE *fp) {
     }
 
     fread(&file_header.length, sizeof(int), 1, fp);
+	
+	if ( model=='X' ) {
+		file_header.length = filesize; // xsider filelength is not in the fileheader, must be defined with filesize
+	} 
 
     // Custom models are indicated a negative length
     if (file_header.length < 0) {
@@ -153,11 +158,19 @@ int owon_parse(struct owon_capture *capture, FILE *fp) {
     }
     capture->channel_count = 0;
 
+	int dummy; // dummy variable for read empty spaces
     while (ftell(fp) < file_header.length) {
         struct owon_channel_header chan_header;
         fread(&chan_header.name, sizeof(char), sizeof(chan_header.name), fp);
-        fread(&chan_header.length, sizeof(int), 1, fp);
-        fread(&chan_header.sample_count, sizeof(int), 1, fp);
+		fread(&chan_header.length, sizeof(int), 1, fp);
+		if  ( model=='X') {
+			chan_header.length = abs(chan_header.length)+2; // length is calculated complement
+		} 
+		
+		if ( model=='X') {
+			fread(&dummy, sizeof(int), 1, fp); // unknown datagram
+		}
+		fread(&chan_header.sample_count, sizeof(int), 1, fp);
         fread(&chan_header.sample_screen, sizeof(int), 1, fp);
         fread(&chan_header.slow_scan_pos, sizeof(int), 1, fp);
         fread(&chan_header.time_div, sizeof(int), 1, fp);

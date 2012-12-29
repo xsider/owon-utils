@@ -80,7 +80,7 @@ struct owon_capture {
 float *get_attenuation_table(const char c);
 float *get_volt_table(const char c);
 float *get_time_table(const char c);
-int owon_parse(struct owon_capture *capture, FILE *fp);
+int owon_parse(struct owon_capture *capture, FILE *fp, long filesize);
 void owon_free_capture(struct owon_capture *capture);
 int owon_write_delim(struct owon_capture const *capture, char *delim, 
         char *line_end, int header, FILE *fp);
